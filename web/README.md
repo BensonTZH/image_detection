@@ -1,100 +1,105 @@
-# vinext-starter
+# CupDetector
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+CupDetector is a browser-based proof of concept that uses an ONNX pose model
+to find the cup-return tube, draw its box and four corners, and provide live
+alignment guidance. Inference runs on the device; camera frames are not sent to
+an application backend.
 
 ## Prerequisites
 
-- Node.js `>=22.13.0`
+- Node.js 22.13 or newer. Node.js 20 cannot start the current Vinext version.
+- npm.
+- Python 3.12 for dataset validation, training, evaluation, and ONNX export.
+- Android SDK Platform Tools only when testing a phone camera through USB.
 
-## Quick Start
+## Install the Python requirements
+
+From the repository root on macOS or Linux:
 
 ```bash
-npm install
+cd /Users/bensontan/Desktop/image_detection
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r ml/requirements.txt
+python -m unittest discover -s ml/tests -v
+```
+
+On Windows PowerShell, replace the activation command with:
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r ml\requirements.txt
+python -m unittest discover -s ml\tests -v
+```
+
+The Python environment is needed for the ML scripts. The browser application
+uses the exported model in `web/public/models/slot-pose.onnx` and does not run
+Python while serving the page.
+
+## Install and test the web app
+
+On macOS or Linux:
+
+```bash
+cd /Users/bensontan/Desktop/image_detection/web
+nvm use 22
+npm ci
+npm test
 npm run dev
-npm run build
 ```
 
-This starter does not use `wrangler.jsonc`.
+Open `http://localhost:3000` on the development computer. Keep the Terminal
+window running and press `Control+C` when finished.
 
-## Included Shape
+The current npm scripts use macOS/Linux-style inline environment variables.
+Windows users should follow the Windows guide, which provides compatible
+PowerShell commands.
 
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
+## Test on an Android phone
 
-## Workspace Auth Headers
+Follow the guide for the operating system running the local server:
 
-Signed-in visitors receive both `oai-authenticated-user-id` and `oai-authenticated-user-email`. Private Sites require every visitor to sign in; public Sites may also have anonymous visitors, for whom neither header is present.
+- [macOS localhost and phone testing](../docs/localhost-phone-testing.md)
+- [Windows localhost and phone testing](../docs/windows-localhost-phone-testing.md)
 
-The user ID is stable for the same user on the same Site and different across Sites. Email and name are intended for display or contact purposes.
+For live phone-camera testing over USB, configure ADB port reversal and open
+`http://localhost:3000` on the phone. A plain `http://192.168...` Wi-Fi address
+can load the page and test existing images, but Chrome normally blocks live
+camera access on that insecure origin.
 
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
+## Project layout
 
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const userId = requestHeaders.get("oai-authenticated-user-id");
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```text
+ml/scripts/                       Dataset, training, evaluation, and export tools
+ml/tests/                         Python unit tests
+ml/requirements.txt              Python ML dependencies
+web/app/                          CupDetector interface
+web/lib/pose.ts                   ONNX decoding and alignment guidance
+web/public/models/slot-pose.onnx  Browser model
+web/tests/                        Browser logic and build tests
+docs/                             Setup and testing guides
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+Datasets, training runs, virtual environments, generated build folders, and
+other large local outputs should remain ignored. The browser ONNX model is an
+intentional application asset and must remain committed.
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
+## Useful commands
 
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
+Run these from the `web` directory on macOS or Linux:
 
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
+- `npm run dev`: start local development.
+- `npm run build`: create the production build.
+- `npm test`: run pose tests, create a production build, and check the rendered
+  app and packaged model.
+- `npm run lint`: run the web lint checks.
 
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
+Run the Python unit tests from the repository root with the virtual environment
+activated:
 
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
-
-## Useful Commands
-
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
-
-## Learn More
-
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+```bash
+python -m unittest discover -s ml/tests -v
+```

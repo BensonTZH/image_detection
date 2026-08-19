@@ -1,5 +1,7 @@
-Pillow>=10.0,<12.0
-ultralytics>=8.3,<9.0
-onnx>=1.16,<2.0
-onnxruntime>=1.18,<2.0
-onnxslim>=0.1.82
+# Verified with Python 3.12.13.
+Pillow>=11.3,<12.0
+torch>=2.13,<3.0
+ultralytics>=8.4.120,<9.0
+onnx>=1.22,<2.0
+onnxruntime>=1.28,<2.0
+onnxslim>=0.1.96,<1.0

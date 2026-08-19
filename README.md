@@ -41,10 +41,15 @@ Python while serving the page.
 
 ## Install and test the web app
 
+The npm project is inside the `web` directory. The repository root does not
+contain a `package.json`, so do not run `npm ci`, `npm test`, or `npm run dev`
+until after changing into `web`.
+
 On macOS or Linux:
 
 ```bash
-cd /path/to/image_detection/web
+cd /path/to/image_detection
+cd web
 nvm use 22
 npm ci
 npm test

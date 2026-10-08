@@ -18,12 +18,21 @@ def validate_dataset_layout(dataset: Path) -> Path:
 
 def write_resolved_data_yaml(dataset: Path, output: Path) -> Path:
     dataset = validate_dataset_layout(dataset)
+    test_image_dir = dataset / "images" / "test"
+    test_label_dir = dataset / "labels" / "test"
+    if test_image_dir.is_dir() != test_label_dir.is_dir():
+        raise FileNotFoundError("The test image and label directories must either both exist or both be absent")
+    split_lines = [
+        "train: images/train",
+        "val: images/val",
+    ]
+    if test_image_dir.is_dir():
+        split_lines.append("test: images/test")
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(
         "\n".join([
             f"path: {json.dumps(str(dataset))}",
-            "train: images/train",
-            "val: images/val",
+            *split_lines,
             "kpt_shape: [4, 3]",
             "flip_idx: [1, 0, 3, 2]",
             "names:",

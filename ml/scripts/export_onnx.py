@@ -37,6 +37,9 @@ def main() -> int:
     if not args.weights.is_file():
         print(f"Checkpoint not found: {args.weights}", file=sys.stderr)
         return 2
+    if args.imgsz <= 0 or args.imgsz % 32:
+        print("--imgsz must be a positive multiple of 32", file=sys.stderr)
+        return 2
 
     model = YOLO(str(args.weights))
     exported = Path(model.export(
@@ -58,7 +61,9 @@ def main() -> int:
     inputs = [{"name": item.name, "shape": shape_for_json(item.shape), "type": item.type} for item in session.get_inputs()]
     outputs = [{"name": item.name, "shape": shape_for_json(item.shape), "type": item.type} for item in session.get_outputs()]
     expected_input = [1, 3, args.imgsz, args.imgsz]
-    expected_output = [1, 17, 8400]
+    expected_candidates = sum((args.imgsz // stride) ** 2 for stride in (8, 16, 32))
+    # Pose output channels are: 4 box values + class scores + 4 keypoints x 3 values.
+    expected_output = [1, 4 + len(model.names) + 12, expected_candidates]
     contract_errors: list[str] = []
     if len(inputs) != 1 or inputs[0]["shape"] != expected_input:
         contract_errors.append(f"Expected one input shaped {expected_input}, found {inputs}")

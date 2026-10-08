@@ -25,6 +25,17 @@ class Phase2CommonTests(unittest.TestCase):
             self.assertIn("kpt_shape: [4, 3]", text)
             self.assertIn("0: slot", text)
 
+    def test_resolved_yaml_includes_test_split_when_present(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            dataset = root / "dataset"
+            for split in ("train", "val", "test"):
+                (dataset / "images" / split).mkdir(parents=True)
+                (dataset / "labels" / split).mkdir(parents=True)
+            output = root / "resolved.yaml"
+            write_resolved_data_yaml(dataset, output)
+            self.assertIn("test: images/test", output.read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()

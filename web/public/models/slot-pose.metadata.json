@@ -1,0 +1,31 @@
+{
+  "exported_at": "2026-09-03T05:28:56Z",
+  "ultralytics": "8.4.120",
+  "onnx": "1.22.0",
+  "onnxruntime": "1.29.0",
+  "source_weights": "/Users/bensontan/Desktop/image_detection/runs/angle-pose/baseline-v3-left-angle/weights/best.pt",
+  "model": "/Users/bensontan/Desktop/image_detection/web/public/models/slot-pose.onnx",
+  "sha256": "c14ce3318c04e430826158105ff22c00a0ceed167d491cb1f79de0cfd0c23bcc",
+  "size_bytes": 10804934,
+  "opsets": {
+    "ai.onnx": 12
+  },
+  "simplified": true,
+  "nms_embedded": false,
+  "inputs": [
+    {
+      "name": "images",
+      "shape": [1, 3, 320, 320],
+      "type": "tensor(float)"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "output0",
+      "shape": [1, 19, 2100],
+      "type": "tensor(float)"
+    }
+  ],
+  "contract_status": "PASS",
+  "contract_errors": []
+}

@@ -5,6 +5,14 @@ to find the cup-return tube, draw its box and four corners, and provide live
 alignment guidance. Inference runs on the device; camera frames are not sent to
 an application backend.
 
+The repository also includes a separate success/error quality-classifier
+pipeline for checking whether the returned cups are readable. See the
+[quality-classifier training guide](docs/case-classifier-training.md).
+
+For slot detection and alignment work, use the
+[pose-guidance dataset analysis](docs/pose-guidance-dataset-analysis.md) to
+measure the original success/error photographs without changing the web app.
+
 ## Prerequisites
 
 - Node.js 22.13 or newer. Node.js 20 cannot start the current Vinext version.
@@ -81,6 +89,9 @@ camera access on that insecure origin.
 ml/scripts/                       Dataset, training, evaluation, and export tools
 ml/tests/                         Python unit tests
 ml/requirements.txt              Python ML dependencies
+dataset/case-classifier/          Generated grouped classifier crops (ignored)
+runs/case-classifier/             Generated classifier checkpoints (ignored)
+reports/pose-guidance/            Generated pose-analysis reports (ignored)
 web/app/                          CupDetector interface
 web/lib/pose.ts                   ONNX decoding and alignment guidance
 web/public/models/slot-pose.onnx  Browser model

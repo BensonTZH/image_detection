@@ -8,7 +8,9 @@ data/labels/
 # Model files
 *.pt
 *.onnx
+!web/public/models/slot-acceptability.onnx
 !web/public/models/slot-pose.onnx
+!web/public/models/slot-high-angle.onnx
 *.engine
 runs/
 weights/
@@ -17,6 +19,8 @@ weights/
 artifacts/
 reports/
 outputs/
+offloaded-backups-*/
+:memory:.ses
 
 # Python
 __pycache__/
@@ -28,7 +32,8 @@ venv/
 node_modules/
 .next/
 out/
-dist/
+dist
+dist */
 *.tsbuildinfo
 
 # Environment files and secrets

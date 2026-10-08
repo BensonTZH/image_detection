@@ -70,17 +70,28 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=Path("artifacts/phase-1"))
     parser.add_argument("--samples", type=int, default=36)
     parser.add_argument("--seed", type=int, default=17)
+    parser.add_argument("--splits", nargs="+", choices=("train", "val"), default=("train", "val"))
+    parser.add_argument(
+        "--backgrounds",
+        type=int,
+        default=4,
+        help="Maximum unlabeled background images per montage (use 0 for labelled images only)",
+    )
     args = parser.parse_args()
+    if args.samples <= 0:
+        parser.error("--samples must be greater than zero")
+    if args.backgrounds < 0:
+        parser.error("--backgrounds must not be negative")
     args.output.mkdir(parents=True, exist_ok=True)
     rng = random.Random(args.seed)
     columns, tile_size = 4, (360, 270)
 
-    for split in ("train", "val"):
+    for split in args.splits:
         image_dir = args.dataset / "images" / split
         images = sorted(path for path in image_dir.iterdir() if path.suffix.lower() in IMAGE_SUFFIXES)
         backgrounds = [path for path in images if not label_path(args.dataset, split, path).exists()]
         labeled = [path for path in images if label_path(args.dataset, split, path).exists()]
-        selected = rng.sample(backgrounds, min(4, len(backgrounds), args.samples))
+        selected = rng.sample(backgrounds, min(args.backgrounds, len(backgrounds), args.samples))
         selected += rng.sample(labeled, min(args.samples - len(selected), len(labeled)))
         rng.shuffle(selected)
         rows = (len(selected) + columns - 1) // columns

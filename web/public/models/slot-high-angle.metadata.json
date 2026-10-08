@@ -1,0 +1,54 @@
+{
+  "model_version": "high-angle-v7-six-roi-20260923",
+  "classes": [
+    "acceptable",
+    "high_angle"
+  ],
+  "input_size": 320,
+  "threshold": 0.4,
+  "preprocessing": {
+    "region": "detected slot box",
+    "aspect_ratio": "9:16",
+    "height": "max(box_height * 1.25, box_width * 3 * 16/9)",
+    "output_strip": [
+      70,
+      0,
+      180,
+      320
+    ],
+    "padding_rgb": [
+      114,
+      114,
+      114
+    ],
+    "normalization": "RGB CHW /255",
+    "perspective_rectification": false
+  },
+  "dataset": {
+    "acceptable": 247,
+    "high_angle": 34,
+    "new_training_photos": 6
+  },
+  "sha256": "b8eb31ab2dbd3813ebc86a523b707150350f0995433f8f1a102eeecc0d5d06b1",
+  "evaluation": {
+    "new_photos": {
+      "high_angle": 5,
+      "acceptable": "IMG20260923145827.jpg",
+      "training_fit_views_correct": 18,
+      "training_fit_views_total": 18
+    },
+    "held_out_views": {
+      "high_angle_correct": 29,
+      "high_angle_total": 30,
+      "acceptable_clear": 220,
+      "acceptable_total": 222
+    },
+    "earlier_screenshot": {
+      "high_angle_probability": 0.10567955672740936,
+      "threshold": 0.4,
+      "rejected": false
+    },
+    "browser_verification": "18/18 views pixel-identical to training input; WASM/native ONNX scores within 0.0001"
+  },
+  "release_note": "User requested live test deployment despite documented evaluation failures."
+}

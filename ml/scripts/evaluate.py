@@ -24,6 +24,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--samples", type=int, default=36)
     parser.add_argument("--seed", type=int, default=17)
     parser.add_argument("--name", default="baseline-evaluation")
+    parser.add_argument("--split", choices=("train", "val", "test"), default="val")
     return parser.parse_args()
 
 
@@ -46,9 +47,9 @@ def main() -> int:
     model = YOLO(str(args.weights))
     metrics = model.val(
         data=str(resolved_yaml), imgsz=args.imgsz, batch=args.batch, device=device,
-        project=str(project), name=args.name, exist_ok=True, plots=True,
+        project=str(project), name=args.name, exist_ok=True, plots=True, split=args.split,
     )
-    images = sorted(path for path in (args.dataset / "images" / "val").iterdir() if path.suffix.lower() in IMAGE_SUFFIXES)
+    images = sorted(path for path in (args.dataset / "images" / args.split).iterdir() if path.suffix.lower() in IMAGE_SUFFIXES)
     selected = random.Random(args.seed).sample(images, min(args.samples, len(images)))
     prediction_dir = project / args.name / "predictions"
     model.predict(
@@ -62,6 +63,7 @@ def main() -> int:
         "weights": str(args.weights.resolve()),
         "device": device,
         "imgsz": args.imgsz,
+        "split": args.split,
         "sample_count": len(selected),
         "prediction_directory": str(prediction_dir),
         "metrics": getattr(metrics, "results_dict", {}),

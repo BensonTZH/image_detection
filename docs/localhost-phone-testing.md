@@ -1,159 +1,165 @@
-# Localhost and Android Phone Testing
+# Local phone testing
 
-## Purpose
+Start with the [README](../README.md) to install Node, clone `dev` into a local
+folder and run `npm ci` in `web`. Run all npm commands below from `web`.
+Stop the previous server before switching connection methods.
 
-This guide starts CupDetector locally on the MacBook and connects an Android
-phone for image and live-camera testing. The verified setup uses Node.js 22,
-Vinext port 3000, Android Debug Bridge (ADB), and Google Chrome.
+## Wi-Fi: check connectivity first
 
-## 1. Check Node.js
-
-Vinext requires Node.js 22.13 or newer. This project has been verified with
-Node.js 22.23.2.
-
-```bash
-node --version
+```sh
+npm run dev:lan
 ```
 
-If the result starts with `v20`, select Node.js 22:
+This uses Vinext's `--hostname 0.0.0.0` option. `--host` is not the correct option
+for this CLI. Both devices must be on the same network without client isolation.
+Allow incoming Node connections on your trusted local network if the firewall
+prompts.
 
-```bash
-nvm use 22
+Find the computer's current Wi-Fi IPv4 address:
+
+- macOS: System Settings → Wi-Fi → Details → TCP/IP. `ipconfig getifaddr en0`
+  also works when Wi-Fi is `en0`; use settings if it prints nothing.
+- Windows: `ipconfig`, then the IPv4 address under the active Wi-Fi adapter.
+- Linux: network settings or `ip address`.
+
+If the address is `192.168.1.25`, open `http://192.168.1.25:3000` on the phone.
+Use your actual address. This should load the page and Test an image; live camera
+access requires the HTTPS or Android USB method below.
+
+## Wi-Fi: trusted HTTPS for the phone camera
+
+### 1. Install the certificate tool
+
+On macOS with Homebrew:
+
+```sh
+brew install mkcert
+mkcert -install
 ```
 
-To make Node.js 22 the default for new Terminal windows:
+For Windows or Linux, follow the [mkcert installation instructions](https://github.com/FiloSottile/mkcert#installation),
+then run `mkcert -install` on the computer. This creates a local certificate
+authority and installs its trust on that computer; it does not configure the
+phone or the app automatically.
 
-```bash
-nvm alias default 22
+### 2. Create a certificate for your address
+
+From `web`, replace `192.168.1.25` with the computer's current Wi-Fi IP:
+
+macOS/Linux:
+
+```sh
+mkdir -p .certs
+mkcert -cert-file .certs/local.pem -key-file .certs/local-key.pem localhost 127.0.0.1 ::1 192.168.1.25
 ```
 
-## 2. Install and test the web app
+Windows PowerShell:
 
-From a fresh clone, install the exact dependency versions and run all automated
-tests:
-
-```bash
-cd /Users/bensontan/Desktop/image_detection/web
-npm ci
-npm test
+```powershell
+New-Item -ItemType Directory -Force .certs | Out-Null
+mkcert -cert-file .certs/local.pem -key-file .certs/local-key.pem localhost 127.0.0.1 ::1 192.168.1.25
 ```
 
-`npm test` runs the pose and guidance tests, creates a production build, and
-checks that the app and ONNX model are included correctly.
+The `.certs` directory is ignored by Git. Reissue the certificate if the IP
+changes, or reserve the computer's address in your router.
 
-## 3. Start localhost on the MacBook
+### 3. Trust the CA on your phone
 
-For MacBook-only testing:
+Run `mkcert -CAROOT` on the computer to locate **rootCA.pem**. Transfer only that
+public CA certificate to your own test phone, using a cable or trusted file
+transfer. Never share `rootCA-key.pem` or `local-key.pem`. Do not place the CA
+private key or the CA directory in the app's public folder.
 
-```bash
-cd /Users/bensontan/Desktop/image_detection/web
-nvm use 22
-npm run dev
+- **Android:** in Settings, search for “Install a certificate” and choose **CA
+  certificate** (often under Security → Encryption & credentials). Select the
+  transferred rootCA.pem. Menu names vary by manufacturer. Restart Chrome.
+  Managed devices may prohibit installing a user CA; use an approved IT setup
+  or the Android USB method instead.
+- **iPhone/iPad:** open the certificate, install its profile under Settings →
+  General → VPN & Device Management, then enable its trust under Settings →
+  General → About → Certificate Trust Settings. See [Apple's certificate trust
+  instructions](https://support.apple.com/en-us/102390). Restart Safari.
+
+### 4. Start HTTPS and open the phone URL
+
+```sh
+npm run dev:https
 ```
 
-Open:
+Open **`https://192.168.1.25:3000`** on the phone, substituting the IP used in the
+certificate. The page should open **without a certificate warning**. Choose
+Start live detection and allow camera access. A bypassed certificate warning is
+not a substitute for configuring trust.
 
-```text
-http://localhost:3000
+`dev:https` checks for `.certs/local.pem` and `.certs/local-key.pem`, enables
+Vite's TLS server and binds to the local network. Regular `dev`/`dev:lan` remain
+HTTP even when certificate files exist. Add `-- --port 3001` if you need another
+port and update the URL accordingly.
+
+When finished, stop with Ctrl+C. Remove the test CA/profile from the phone if it
+is no longer needed. Keep keys private and generate a separate CA on each
+maintainer's computer.
+
+## Android USB: live camera without certificates
+
+This alternative forwards the phone's localhost to the computer through USB.
+It does not use the phone's Wi-Fi address or require USB tethering.
+
+1. Enable Android Developer options (typically tap Build number seven times),
+   then enable **USB debugging**.
+2. Connect a USB data cable, unlock the phone and accept the debugging prompt.
+   Select File Transfer if required by the phone.
+3. Install Android Platform Tools. On macOS with Homebrew:
+
+```sh
+brew install --cask android-platform-tools
 ```
 
-Keep the Terminal window running. Press `Control+C` when finished.
+On other systems use Google's [SDK Platform Tools](https://developer.android.com/tools/releases/platform-tools).
+Confirm `adb devices -l` lists the phone as **device**, not unauthorized.
 
-## 4. Open the page over office Wi-Fi
+Start the HTTP server in one terminal:
 
-To expose the server to devices on the same Wi-Fi network, Vinext requires the
-`--hostname` option. The similar `--host` option is ignored by this version.
-
-```bash
-npm run dev -- --hostname 0.0.0.0
+```sh
+npm run dev -- --hostname 127.0.0.1
 ```
 
-Find the MacBook's Wi-Fi address:
+In another terminal:
 
-```bash
-ipconfig getifaddr en0
-```
-
-If the result is `192.168.1.50`, the phone can open:
-
-```text
-http://192.168.1.50:3000
-```
-
-This address is suitable for loading the page and using **Test an image**. Live
-camera access is normally blocked because Chrome does not treat a plain HTTP
-Wi-Fi address as a secure camera origin.
-
-If the phone reports **Connection refused**, confirm that Terminal printed a
-`Network` URL and that macOS allows incoming connections for Node.js. Also
-confirm that both devices are on the same non-guest Wi-Fi network.
-
-## 5. Enable live-camera testing through USB
-
-USB tethering is not required. Enable **USB debugging** instead:
-
-1. On the phone, open **Settings > About phone**.
-2. Tap **Build number** seven times to enable Developer options.
-3. Open **Settings > Additional settings > Developer options**.
-4. Enable **Developer options** and **USB debugging**.
-5. Connect the phone with a USB data cable, unlock it, and select **File
-   Transfer** as the USB mode.
-6. Accept **Allow USB debugging?** and optionally select **Always allow from
-   this computer**.
-
-Install Android Platform Tools on the MacBook if `adb` is unavailable:
-
-```bash
-brew install android-platform-tools
-```
-
-Confirm that the phone is authorized:
-
-```bash
-adb kill-server
-adb start-server
-adb devices -l
-```
-
-The device line must end with `device`. If it says `unauthorized`, unlock the
-phone and accept the authorization prompt. If no device appears, disable USB
-tethering, use File Transfer mode, try another data cable or USB port, revoke
-USB debugging authorizations, and reconnect.
-
-Forward the phone's localhost port to the MacBook server:
-
-```bash
+```sh
 adb reverse tcp:3000 tcp:3000
 adb reverse --list
 ```
 
-Keep the USB cable connected. In Chrome on the phone, close any CupDetector
-tabs using the Wi-Fi address and open this exact address:
+Keep the cable connected and open **`http://localhost:3000`** in Chrome on the
+phone. Port forwarding makes this localhost address reach the computer. Allow
+camera access and start detection. Change both ports if the server uses another
+port. See [Chrome's local-server forwarding guide](https://developer.chrome.com/docs/devtools/remote-debugging/local-server)
+for the DevTools alternative.
 
-```text
-http://localhost:3000
-```
+When finished:
 
-Do not use `http://192.168.1.50:3000` for live-camera testing. Through ADB,
-Chrome sees `localhost` as a secure local origin and can request camera access.
-Press **Start live detection** and choose **Allow** when Chrome asks.
-
-## 6. Troubleshoot "Live detection unavailable"
-
-Check these items in order:
-
-1. The phone address bar says exactly `http://localhost:3000`.
-2. `adb devices -l` shows the phone as `device`.
-3. `adb reverse --list` contains `tcp:3000 tcp:3000`.
-4. The MacBook development server is still running.
-5. Android **Settings > Apps > Chrome > Permissions > Camera** is allowed.
-6. Chrome's site settings allow the camera for localhost.
-7. No other app is actively using the camera.
-
-## 7. Disconnect cleanly
-
-Stop the development server with `Control+C`, then remove the USB port mapping:
-
-```bash
+```sh
 adb reverse --remove tcp:3000
 ```
+
+Stop the server with Ctrl+C. Reconnecting the phone may require repeating the
+forwarding command. This USB method does not apply to iPhones.
+
+## Troubleshooting
+
+- **Can't reach the page:** verify the URL, server terminal, correct port, Wi-Fi
+  IP and network binding. Check firewall and guest-network isolation. `localhost`
+  on the phone only reaches the computer after USB forwarding is active.
+- **Loading/restart loop:** use a fresh checkout outside cloud-synced folders;
+  follow the README troubleshooting before debugging phone permissions.
+- **HTTPS starts but certificate is rejected:** check CA trust and the IP in the
+  certificate. Do not disable browser security or use insecure-origin flags.
+- **Camera unavailable on an otherwise working page:** check browser/site and
+  OS camera permissions; close other camera apps. Confirm HTTPS is trusted, or
+  that USB forwarding and localhost are in use.
+- **ADB unauthorized:** unlock the phone and accept the prompt. If no phone is
+  listed, check the cable, USB debugging and Windows device drivers.
+- **Testing limits:** desktop HTTP/HTTPS checks do not validate a phone's trust
+  store, camera permissions or the model's accuracy on live views. Complete a
+  physical-device test before considering the setup ready.
